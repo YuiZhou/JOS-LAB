@@ -1,0 +1,3 @@
+# the environment id
+The env_id in the env struct may be larger than the NENV
+In the kern/env.c env_alloc, it create a environment is by generation:id

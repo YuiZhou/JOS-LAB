@@ -1,0 +1,16 @@
+# exceptions and interrupts
+ interrupt - asynchronous external to the processor[ > 31]
+ exception - caused by the code[0 - 31]
+
+In JOS, all exceptions are handled in kernel mode - privilege level 0
+
+# NESTED EXCEPTION
+Only when entering the kernel from user mode, the X86 processor automatically switches stacks before pushing its old register stat onto the stack and invoking the appropriate exception handler through the IDT.
+Else, just push, not switch.
+
+# Why general protection /* understanding the linux kernel P126 */
+When handing a interrupt/exception, it will check the interrupt whether is called from the legel segment. It check the CPL(tf->tf_cs) and DPL( in the GDT), if they are not in the legel relationship, a general protection fault will occur.
+set_system_gate, set_intr_gate, set_trap_gate will set the DPL in the IDT in trap_init.
+
+# fault handler
+Each fault handler should check the handler is called from kernel mode or a user mode. If in the kernel mode, it should check whether it has a valid paramter.
