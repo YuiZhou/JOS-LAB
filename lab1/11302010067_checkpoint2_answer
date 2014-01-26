@@ -1,0 +1,31 @@
+#############
+# Exercise3.
+#############
+
+? At what point does the processor start executing 32-bit code? What exactly 
+? causes the switch from 16- to 32-bit mode?
+* answer:
+	At the 0x7c2d, the line "ljmp $PROT_MODE_CSEG, $protcseg", it switches 
+	to 32-bit mode. 
+	Firstly, it uses bootsrap GDT and segment translation that makes virtual	addresses identical to thier physical addresses, so that the effective
+	memory map does not change at the switch. Then, it jump with the 
+	$PORT_MODE_CSEG to the $protcseg, where the $PORT_MODE_CSEG is defined 
+	to 8. The protected mode will translate the address to the right address
+
+? What is the last instruction of the boot loader executed, and what is the 
+? first instruction of the kernel it just loaded?
+* answer:
+	The last instruction of the boot loader is "call *0x10018"
+	The first instruction of the kernel is "movw $0x1234, 0x472"
+
+? Where is the first instruction of the kernel?
+* answer:
+	At the *0x10018
+
+? How does the boot loader decide how many sectors it must read in order to 
+? fetch the entire kernel from disk? Where does it find this information?
+*answer:
+	Check the value in struct proghdr.
+	In the bootmain() in the boot/main.c, after it check the valid of ELF.
+
+
