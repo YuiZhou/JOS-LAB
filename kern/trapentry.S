@@ -41,7 +41,9 @@
 	pushl $(num);							\
 	jmp _alltraps
 
-.text
+# .text
+# 	.globl System_call;                                                    \
+#   .type System_call, @function;                                          \
 
 /*
  * Lab 3: Your code here for generating entry points for the different traps.
@@ -72,6 +74,7 @@ TRAPHANDLER_NOEC(Alignment_Check, T_ALIGN);
 TRAPHANDLER_NOEC(Machine_Check, T_MCHK);
 TRAPHANDLER_NOEC(SIMD_Floating_Point_Exception, T_SIMDERR);
 
+TRAPHANDLER_NOEC(System_call,T_SYSCALL);
 
 /*
  * Lab 3: Your code here for _alltraps

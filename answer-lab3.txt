@@ -1,3 +1,11 @@
 1. There are two types of exceptions/interrupts. If all exceptions/interrupts were delivered to the same handler, the code can not recognized the type of the exception/interrupts.
 
-2. The user can not cause a page fault exception because it has no premission. Then it causes a general protection fault, which has an interrupt code 13. 
+2. The user can not cause a page fault exception because it has no premission, that is, the CPL != DPL. Then it causes a general protection fault, which has an interrupt code 13. 
+
+3. When an interrupt/exception occurs in a user environment, it will ensure the current CPL < DPL. ELse it causes a general protection. The SETGATE set the DPL to 3.
+
+4. Avoid user program cause a special trap gate or interrupt gate.(see question2.)
+
+# challenge2,
+1) Add the si and c command in monitor command list
+2) reset the eflags with FL_TF or ~FL_TF, where the FL_TF is the debug mark bit.

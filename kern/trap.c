@@ -83,12 +83,13 @@ trap_init(void)
 	extern void Alignment_Check();
 	extern void Machine_Check();
 	extern void SIMD_Floating_Point_Exception();
+	extern void System_call();
 
 	/* SETGATE(Gatedesc, istrap[1/0], sel, off, dpl) -- inc/mmu.h*/
 	SETGATE(idt[T_DIVIDE] ,0, GD_KT, Divide_error, 0);
 	SETGATE(idt[T_DEBUG] ,0, GD_KT, Debug, 0);
 	SETGATE(idt[T_NMI] ,0, GD_KT, Non_Maskable_Interrupt, 0);
-	SETGATE(idt[T_BRKPT] ,0, GD_KT, Breakpoint, 0);
+	SETGATE(idt[T_BRKPT] ,0, GD_KT, Breakpoint, 3);
 	SETGATE(idt[T_OFLOW] ,0, GD_KT, Overflow, 0);
 	SETGATE(idt[T_BOUND] ,0, GD_KT, BOUND_Range_Exceeded, 0);
 	SETGATE(idt[T_ILLOP] ,0, GD_KT, Invalid_Opcode, 0);
@@ -104,7 +105,7 @@ trap_init(void)
 	SETGATE(idt[T_MCHK] ,0, GD_KT, Machine_Check, 0);
 	SETGATE(idt[T_SIMDERR] ,0, GD_KT, SIMD_Floating_Point_Exception, 0);
 
-
+	SETGATE(idt[T_SYSCALL], 0 , GD_KT, System_call, 3)
 	// Per-CPU setup 
 	trap_init_percpu();
 }
@@ -182,6 +183,28 @@ trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
+	switch(tf -> tf_trapno){
+		case T_BRKPT:
+		case T_DEBUG:
+			monitor(tf);
+			break;
+		case T_PGFLT:
+			page_fault_handler(tf);
+			break;
+	}
+
+	if (tf->tf_trapno == T_SYSCALL){
+		struct PushRegs *regs = &(tf -> tf_regs);
+		/*  DX, CX, BX, DI, SI */
+		int32_t num = syscall(regs->reg_eax, regs->reg_edx, regs->reg_ecx, 
+			regs->reg_ebx,regs->reg_edi, regs->reg_esi);
+
+		if(num < 0)
+			panic("unhandled fault!\n");
+		regs -> reg_eax = num;
+		return;
+
+	}
 
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
@@ -242,6 +265,16 @@ page_fault_handler(struct Trapframe *tf)
 	// Handle kernel-mode page faults.
 
 	// LAB 3: Your code here.
+	//////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////
+	// In understanding the linux kernel P291, P134
+	// All the handlers should check whether it is in kernel mode, 
+	// if so, it should check the parameter whether it is valid
+	// 
+	// If I do not do the following operation, the grade script 
+	// will run correctly though. 
+	if((tf->tf_cs & 0x3) == 0)/* CPL  -  the low 2-bit in the cs register */
+		panic("kernel fault: invalid parameter for the page fault handler! With CPL = %d\n", tf->tf_cs);
 
 	// We've already handled kernel-mode exceptions, so if we get here,
 	// the page fault happened in user mode.

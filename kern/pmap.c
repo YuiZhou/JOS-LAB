@@ -552,7 +552,20 @@ int
 user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 {
 	// LAB 3: Your code here.
+	pte_t *pte;
+	void* uplim = (void *)ROUNDUP(va + len, PGSIZE);
 
+	/*pte_t * pgdir_walk(pde_t *pgdir, const void *va, int create)*/
+	for(;va < uplim; va += PGSIZE){
+		user_mem_check_addr = (uintptr_t)va; /* record the va */
+		if(user_mem_check_addr > ULIM) /* below the ULIM */
+			return -E_FAULT;
+		if((pte = pgdir_walk(env->env_pgdir,va,0)) == NULL) /* No creation, and the pte is null */
+			return -E_FAULT;
+		if(!(*pte & (perm|PTE_P))) /* No permission */
+			return -E_FAULT;
+		va = ROUNDDOWN(va, PGSIZE);
+	}
 	return 0;
 }
 
