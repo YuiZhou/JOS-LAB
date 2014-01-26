@@ -25,6 +25,8 @@ pgfault(struct UTrapframe *utf)
 	//   (see <inc/memlayout.h>).
 
 	// LAB 4: Your code here.
+	if(!((err & FEC_WR) && (vpd[PDX(addr)]&PTE_P) && (vpt[PGNUM(addr)]&PTE_COW) ))
+		panic("Invalid fault address!\n");
 
 	// Allocate a new page, map it at a temporary location (PFTEMP),
 	// copy the data from the old page to the new page, then move the new
@@ -34,8 +36,13 @@ pgfault(struct UTrapframe *utf)
 	//   No need to explicitly delete the old page's mapping.
 
 	// LAB 4: Your code here.
+	if((r = sys_page_alloc(0, (void *)PFTEMP, PTE_W|PTE_P|PTE_U)))
+		panic("Alloc page error: %e", r);
+	addr = ROUNDDOWN(addr, PGSIZE);
+	memmove((void *)PFTEMP, addr, PGSIZE);
+	sys_page_map(0, (void *)PFTEMP, 0, addr, PTE_W|PTE_P|PTE_U);
 
-	panic("pgfault not implemented");
+	//panic("pgfault not implemented");
 }
 
 //
@@ -55,7 +62,15 @@ duppage(envid_t envid, unsigned pn)
 	int r;
 
 	// LAB 4: Your code here.
-	panic("duppage not implemented");
+	if((vpd[PDX(pn*PGSIZE)]&PTE_P) && (vpt[pn]&(PTE_COW|PTE_W))){
+		if((r = sys_page_map(0, (void *)(pn*PGSIZE), envid, (void *)(pn*PGSIZE), PTE_P|PTE_COW|PTE_U)))
+			panic("Map page for child procesee failed: %e\n", r);
+		if((r = sys_page_map(envid, (void *)(pn*PGSIZE), 0, (void *)(pn*PGSIZE), PTE_P|PTE_COW|PTE_U)))
+			panic("Map page for child procesee failed: %e\n", r);
+	}else
+		if((r = sys_page_map(0, (void *)(pn*PGSIZE), envid, (void *)(pn*PGSIZE), PTE_P|PTE_U)))
+			panic("Map page for child procesee failed: %e\n", r);
+	//panic("duppage not implemented");
 	return 0;
 }
 
@@ -79,7 +94,32 @@ envid_t
 fork(void)
 {
 	// LAB 4: Your code here.
-	panic("fork not implemented");
+	envid_t ch_id;
+	uint32_t cow_pg_ptr;
+	int r;
+
+	set_pgfault_handler(pgfault);
+
+	if((ch_id = sys_exofork()) < 0)
+		panic("Fork error\n");
+	if(ch_id == 0){ /* the child process */
+		thisenv =  &envs[ENVX(sys_getenvid())];
+		return 0;
+	}
+	for(cow_pg_ptr = UTEXT; cow_pg_ptr < UXSTACKTOP - PGSIZE; cow_pg_ptr += PGSIZE){
+		if ((vpd[PDX(cow_pg_ptr)] & PTE_P) && (vpt[PGNUM(cow_pg_ptr)] & (PTE_P|PTE_U))) 
+			duppage(ch_id, PGNUM(cow_pg_ptr));
+	}
+
+	if((r = sys_page_alloc(ch_id, (void *)(UXSTACKTOP - PGSIZE), PTE_U|PTE_P|PTE_W)))
+		panic("Alloc exception stack error: %e\n", r);
+
+	extern void _pgfault_upcall(void);
+	sys_env_set_pgfault_upcall(ch_id, _pgfault_upcall);
+
+	sys_env_set_status(ch_id, ENV_RUNNABLE);
+	return ch_id;
+	//panic("fork not implemented");
 }
 
 // Challenge!

@@ -86,8 +86,9 @@ sys_exofork(void)
 
 	// LAB 4: Your code here.
 	struct Env *new_env;
-	if(env_alloc(&new_env, curenv->env_id))
-		panic("Alloc environment failed!\n");
+	int r;
+	if((r = env_alloc(&new_env, curenv->env_id)))
+		return r;
 
 	/* set status */
 	new_env -> env_status = ENV_NOT_RUNNABLE;
@@ -138,7 +139,12 @@ static int
 sys_env_set_pgfault_upcall(envid_t envid, void *func)
 {
 	// LAB 4: Your code here.
-	panic("sys_env_set_pgfault_upcall not implemented");
+	struct Env *e;
+	if(envid2env(envid, &e, 1))
+		return -E_BAD_ENV;
+	e->env_pgfault_upcall = func;
+	return 0;
+	//panic("sys_env_set_pgfault_upcall not implemented");
 }
 
 // Allocate a page of memory and map it at 'va' with permission
@@ -381,6 +387,7 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		case SYS_page_map: return sys_page_map((envid_t)a1, (void *)a2,
 	     (envid_t)a3, (void *)a4, (int)a5);
 		case SYS_page_unmap: return sys_page_unmap((envid_t)a1, (void *)a2);
+		case SYS_env_set_pgfault_upcall: return sys_env_set_pgfault_upcall((envid_t)a1, (void *)a2);
 		default: return -E_INVAL;
 	}
 	//panic("current %d", syscallno);
