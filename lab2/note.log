@@ -11,3 +11,10 @@
 	n - how many pages the Pages array allocated.
 #. 	PADDR - kernel virtual address to physical address
 	KADDR - physical virtual address to kernel virtual address
+===================================
+|	PART II
+===================================
+#. pgdir_walk()
+	given the pgdir( I think it is the .cr0), and the linear address va, return the page table entry address.
+	In the inc/mmu.h, there is a graphic of a linear address, PDX(va) is the offset of the page directory. *(pgidr + PDX(va)) is the entry of the page table. PTX(va) is the page table
+	I have a bug when trace the page2pa(pp2) == check_va2pa(kern_pgdir, PGSIZE), that because when set the pte, I forget to cast the pte to a pointer, that is, it add 1 but 4.

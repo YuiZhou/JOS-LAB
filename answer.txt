@@ -1,2 +1,53 @@
 Exercise3.Question1.
 	It casts a char pointer to x, since the physical address can not be dereference, the x should be uintptr_t type.
+
+Question2. 
+	---------------------------------------------------------
+	| Entry |   BVA	        | Point	to (logically)          |
+	---------------------------------------------------------
+	| 1023  | 0xFFC00000    |pt for top 4MB of phys mem     |
+	---------------------------------------------------------
+	| 1022  | 0XFF800000    |pt for 2nd top 4MB of phys mem |
+	---------------------------------------------------------
+	| .     |               |                               |
+	---------------------------------------------------------
+	| 960   | 0XF0000000    | PHYSMEM: all phys memory      |
+	---------------------------------------------------------
+	| 959   | 0xEFC00000    | KSTACK                        |
+	---------------------------------------------------------
+	| 958   | 0xEF800000    | KSTACK: kernel stack          |
+	---------------------------------------------------------
+	| 957   | 0xEF400000    | UPAGES                        |
+	---------------------------------------------------------
+	| 956   | 0xEF000000	| UPAGES: RO PAGES              |
+	---------------------------------------------------------
+	| .     |               |                               |
+	---------------------------------------------------------
+	| 2     | 0x00800000    | UTEXT: Program Data & Heap    |
+	---------------------------------------------------------
+	| 1     | 0x00400000    | UTEMP: empty memory           |
+	---------------------------------------------------------
+	| 0     | 0x00000000    | [see next question]           |
+	---------------------------------------------------------
+
+Question3.
+	Each time when the program wants to enter the next level page table, the program will check the permission code of the current value. If failed, the method will exix, otherwise go on.
+
+Question4.
+	256MB
+	# PGSIZE = 4096 = 4k
+	# PDX(KERNBASE) = 0x3c0
+	# NPTENTRIES = PGSIZE/WORDSIZE = 1k = 0x400
+	# PTSIZE = PGSIZE * NPENTRIES = 4k * 1k = 4MB
+	# MEM = PGSIZE*ENTRIES = PTSIZE*(NPTENRIES-PDX(KERNBASE)) = 256MB
+
+Question5.
+	4MB + 4KB
+	# HEADOVER = PGSIZE * (NPTENTRIES + 1) = 4096 * 1025
+
+Question6.
+	At the the following code, %eip jump up above KERNBASE
+		movl	$relocated, %eax
+		jmp	*%eax
+	the low address and high address correspoding to the same virtual address.
+	After setting the page, low address in disabled, and the eip will not find the correct address if not jump up.

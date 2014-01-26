@@ -167,7 +167,7 @@ mem_init(void)
 	check_page_alloc();
 //panic("Lab2-Part1 complete!\n");
 	check_page();
-panic("Lab2-Part2 complete!\n");
+//panic("Lab2-Part2 complete!\n");
 	//////////////////////////////////////////////////////////////////////
 	// Now we set up virtual memory
 
@@ -178,6 +178,9 @@ panic("Lab2-Part2 complete!\n");
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
+//pte_t *p = (pte_t *)0xf03fd000;
+	boot_map_region(kern_pgdir,UPAGES, npages * sizeof(struct Page), PADDR(pages), PTE_U|PTE_P);
+//cprintf("##%x", PTE_ADDR(p[PTX(UPAGES)]));
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -190,6 +193,8 @@ panic("Lab2-Part2 complete!\n");
 	//       overwrite memory.  Known as a "guard page".
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
+//	cprintf("\n%x\n", KSTACKTOP - KSTKSIZE);
+	boot_map_region(kern_pgdir, KSTACKTOP - KSTKSIZE, KSTKSIZE, PADDR(bootstack), PTE_P|PTE_W);
 
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE.
@@ -199,7 +204,11 @@ panic("Lab2-Part2 complete!\n");
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
-
+	size_t size = ~0x0 - KERNBASE + 1;
+	//cprintf("the size is %x", size);
+	boot_map_region(kern_pgdir, KERNBASE, size, (physaddr_t)0,PTE_P|PTE_W);
+int i = PDX(KERNBASE);
+//cprintf("the *pte is %x   %x\n", &kern_pgdir[i], pgdir_walk(kern_pgdir, (const void *)KERNBASE, 0));
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
 
@@ -223,6 +232,7 @@ panic("Lab2-Part2 complete!\n");
 
 	// Some more checks, only possible after kern_pgdir is installed.
 	check_page_installed_pgdir();
+
 }
 
 // --------------------------------------------------------------
@@ -368,7 +378,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 	if(!page_create)
 		return NULL; /* allocation fails */
 	page_create -> pp_ref++; /* reference count increase */
-	*ptdir = page2pa(page_create)|PTE_P|PTE_U; /* insert into the new page table page */
+	*ptdir = page2pa(page_create)|PTE_P|PTE_W|PTE_U; /* insert into the new page table page */
 	return (pte_t *)KADDR(PTE_ADDR(*ptdir)) + PTX(va);
 }
 
@@ -385,15 +395,17 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
+//cprintf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ii~~~~~~`~\n");
 	// Fill this function in
 	int i = 0;
 	for(; i < size; i+=PGSIZE,va+=PGSIZE,pa+=PGSIZE){
-		pte_t *pte = pgdir_walk(pgdir, &va, 1);
+		pte_t *pte = pgdir_walk(pgdir, (const void *)va, 1);
 		if(!pte)
 			return;// If it alloc fail
-		*pte = pa|perm|PTE_P;
+//		cprintf("the pte is %x\n", pte);
+		*pte = pa|perm;
 	}
-	
+//cprintf("~~~~~~~~~~~~~~~~~~~~~~~~~\n");
 }
 
 //
@@ -435,7 +447,7 @@ page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm)
 			page_remove(pgdir, va);
 	}
 	*pte = page2pa(pp)|perm|PTE_P;
-//	cprintf("*the value of the pte is %x*", pte);
+	//cprintf("* is %x, *", *pte);
 	pp -> pp_ref++;
 	return 0;
 }
@@ -665,7 +677,6 @@ check_kern_pgdir(void)
 	for (i = 0; i < n; i += PGSIZE)
 		assert(check_va2pa(pgdir, UPAGES + i) == PADDR(pages) + i);
 
-
 	// check phys mem
 	for (i = 0; i < npages * PGSIZE; i += PGSIZE)
 		assert(check_va2pa(pgdir, KERNBASE + i) == i);
@@ -714,7 +725,7 @@ check_va2pa(pde_t *pgdir, uintptr_t va)
 //cprintf("#%d the p+PTX(va) is %x #\n",PTX(va), p + PTX(va));
 	if (!(p[PTX(va)] & PTE_P))
 		return ~0;
-	//cprintf("%x\n", PTE_ADDR(p[PTX(va)]));
+//	cprintf("%x\n", PTE_ADDR(p[PTX(va)]));
 	return PTE_ADDR(p[PTX(va)]);
 }
 
