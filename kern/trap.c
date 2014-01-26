@@ -92,6 +92,13 @@ trap_init(void)
 	extern void SIMD_Floating_Point_Exception();
 	extern void System_call();
 
+	extern void IRQ_timer();
+	extern void IRQ_kbd();
+	extern void IRQ_serial();
+	extern void IRQ_spurious();
+	extern void IRQ_ide();
+	extern void IRQ_error();
+
 	/* SETGATE(Gatedesc, istrap[1/0], sel, off, dpl) -- inc/mmu.h*/
 	SETGATE(idt[T_DIVIDE] ,0, GD_KT, Divide_error, 0);
 	SETGATE(idt[T_DEBUG] ,0, GD_KT, Debug, 0);
@@ -112,7 +119,21 @@ trap_init(void)
 	SETGATE(idt[T_MCHK] ,0, GD_KT, Machine_Check, 0);
 	SETGATE(idt[T_SIMDERR] ,0, GD_KT, SIMD_Floating_Point_Exception, 0);
 
-	SETGATE(idt[T_SYSCALL], 0 , GD_KT, System_call, 3)
+	SETGATE(idt[T_SYSCALL], 0 , GD_KT, System_call, 3);
+
+// 	TRAPHANDLER_NOEC(IRQ_timer,IRQ_OFFSET+IRQ_TIMER);
+// TRAPHANDLER_NOEC(IRQ_kbd,IRQ_OFFSET+IRQ_KBD);
+// TRAPHANDLER_NOEC(IRQ_serial,IRQ_OFFSET+IRQ_SERIAL);
+// TRAPHANDLER_NOEC(IRQ_spurious,IRQ_OFFSET+IRQ_SPURIOUS);
+// TRAPHANDLER_NOEC(IRQ_ide,IRQ_OFFSET+IRQ_IDE);
+// TRAPHANDLER_NOEC(IRQ_error,IRQ_OFFSET+IRQ_ERROR);
+
+	SETGATE(idt[IRQ_OFFSET + IRQ_TIMER], 0, GD_KT, IRQ_timer, 0);
+	SETGATE(idt[IRQ_OFFSET + IRQ_KBD], 0, GD_KT, IRQ_kbd, 0);
+	SETGATE(idt[IRQ_OFFSET + IRQ_SERIAL], 0, GD_KT, IRQ_serial, 0);
+	SETGATE(idt[IRQ_OFFSET + IRQ_SPURIOUS], 0, GD_KT, IRQ_spurious, 0);
+	SETGATE(idt[IRQ_OFFSET + IRQ_IDE], 0, GD_KT, IRQ_ide, 0);
+	SETGATE(idt[IRQ_OFFSET + IRQ_ERROR], 0, GD_KT, IRQ_error, 0);
 	// Per-CPU setup 
 	trap_init_percpu();
 }
@@ -229,6 +250,10 @@ trap_dispatch(struct Trapframe *tf)
 		case T_PGFLT:
 			page_fault_handler(tf);
 			break;
+		case IRQ_OFFSET + IRQ_TIMER:
+			lapic_eoi();
+			sched_yield();
+			return;
 	}
 
 	if (tf->tf_trapno == T_SYSCALL){
@@ -237,8 +262,8 @@ trap_dispatch(struct Trapframe *tf)
 		int32_t num = syscall(regs->reg_eax, regs->reg_edx, regs->reg_ecx, 
 			regs->reg_ebx,regs->reg_edi, regs->reg_esi);
 
-		if(num < 0)
-			panic("unhandled fault!\n");
+		// if(num < 0)
+		// 	panic("unhandled fault!\n");
 		regs -> reg_eax = num;
 		return;
 

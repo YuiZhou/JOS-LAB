@@ -5,3 +5,7 @@ Question2. When CPUA pushes some value to the sharing stack and then is interrup
 Question3. In lab3, we mapped it in a fixed address in the kernel.
 
 Question4. When a cpu needs switching an environment, it invokes an system call which we have done in lab3. For invoking an system call, the trapentry.S push a trapFrame into the stack before it call trap(). It is where that the environment saves the old registers.
+
+Chanllege:
+sfork():
+In this function, I implement a sharing address space fork function.It is similiar to the fork() function but from the UTEXT to end, it just map the page to the child with the PTE_U&perm permission, but not call duppage.

@@ -1,7 +1,7 @@
 00200010 R __STAB_BEGIN__
-0020337c R __STAB_END__
-0020337d R __STABSTR_BEGIN__
-00204f32 R __STABSTR_END__
+00203544 R __STAB_END__
+00203545 R __STABSTR_BEGIN__
+00205129 R __STABSTR_END__
 00800020 T _start
 0080002c t args_exist
 00800040 T umain
@@ -49,11 +49,11 @@
 008010c4 t pgfault
 0080119f T fork
 008013ac T sfork
-008013d0 T set_pgfault_handler
-00801440 T _pgfault_upcall
-00801470 T __udivdi3
-008015c0 T __umoddi3
-00801a20 r error_string
+00801654 T set_pgfault_handler
+008016c4 T _pgfault_upcall
+008016f0 T __udivdi3
+00801840 T __umoddi3
+00801ca0 r error_string
 00802000 D binaryname
 00802004 B counter
 00802008 B thisenv

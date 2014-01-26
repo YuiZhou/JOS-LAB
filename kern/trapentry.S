@@ -76,10 +76,13 @@ TRAPHANDLER_NOEC(Machine_Check, T_MCHK);
 TRAPHANDLER_NOEC(SIMD_Floating_Point_Exception, T_SIMDERR);
 
 TRAPHANDLER_NOEC(System_call,T_SYSCALL);
-# .globl sysenter_handler;
-# .type sysenter_handler, @function;
-# .align 2;
-# sysenter_handler:
+
+TRAPHANDLER_NOEC(IRQ_timer,IRQ_OFFSET+IRQ_TIMER);
+TRAPHANDLER_NOEC(IRQ_kbd,IRQ_OFFSET+IRQ_KBD);
+TRAPHANDLER_NOEC(IRQ_serial,IRQ_OFFSET+IRQ_SERIAL);
+TRAPHANDLER_NOEC(IRQ_spurious,IRQ_OFFSET+IRQ_SPURIOUS);
+TRAPHANDLER_NOEC(IRQ_ide,IRQ_OFFSET+IRQ_IDE);
+TRAPHANDLER_NOEC(IRQ_error,IRQ_OFFSET+IRQ_ERROR);
 
 /*
  * Lab 3: Your code here for _alltraps

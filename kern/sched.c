@@ -9,7 +9,7 @@
 void
 sched_yield(void)
 {
-	struct Env *idle;
+	struct Env *idle, *e;
 	int i, cur_id;
 
 	// Implement simple round-robin scheduling.
@@ -27,19 +27,19 @@ sched_yield(void)
 	// idle environment (env_type == ENV_TYPE_IDLE).  If there are
 	// no runnable environments, simply drop through to the code
 	// below to switch to this CPU's idle environment.
-
+	
 	// LAB 4: Your code here.
-	if(curenv != NULL)
-		cur_id = curenv->env_id;
-	else
-		cur_id = 0;
-	for(i = 0; i < NENV; i++){
-		if((++cur_id) >= NENV) /* The cur_id could be 409*, and the NENV is 1024 */
-			cur_id = 0;
-		if(envs[cur_id].env_type != ENV_TYPE_IDLE &&
-			envs[cur_id].env_status == ENV_RUNNABLE)
-			env_run(&envs[cur_id]);
-	}
+	e = curenv;
+    if(e == NULL)
+        e = envs;
+
+    for(i = 0; i < NENV ; i++, e++){
+        if(e >= envs + NENV)
+            e = envs;
+        if(e->env_status == ENV_RUNNABLE && e->env_type != ENV_TYPE_IDLE)
+            env_run(e);
+    }
+
 
 	// For debugging and testing purposes, if there are no
 	// runnable environments other than the idle environments,
