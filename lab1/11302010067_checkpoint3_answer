@@ -1,0 +1,56 @@
+#################
+# Exercises 8
+#################
+
+?1.  Explain the interface between printf.c and console.c. Specifically, what 
+? function does console.c export? How is this function used by printf.c?
+* Answer:
+	The printf invokes the vprintfmt(), which parses the formatted sentence, 	and invokes the cons_putc() in kern/console.c to put a char on console.
+	That is, the function cons_putc() lets console to export.
+
+? 2. Explain the following from console.c
+* Answer:
+	The console is filled with output, then the code moves all the output up	and leaves a empty line to the following output.
+
+? 3. 
+* Answer:
+	a. In the call, fmt means "x %d, y %x, z %d\n",
+	   ap means x, y, z
+	b. vcprintf(const char *fmt, va_list ap)
+		fmt = "x %d, y %x, z %d\n", ap = x,y,z
+	   cons_put(int c)
+		x , y , z \n
+	   va_arg()
+		before it invoked, ag is the character after the %, after 
+		invoked, it means some real strings, like pointer, heximal and
+		string value.
+
+?4. What is the output?
+* Answer:
+	a. utput is "He110 World".
+	   In the cprintf, %x means print the number in a heximal format, then
+	   (57616)10 = 0xe110
+	   In memory, the 0x00646c72 is stored in "72 6c 64 00" format. The line 	   printf("%s",&i) means print the memory in string format, and these 
+	   byte transale by the ascii code is "rld". The last byte is '00', that 	   means the sentence is finished.
+	b. 0x726c6400
+	   no
+
+?5. 
+* Answer:
+	The x, y are parameters of the cprintf(), and it will be pushed into 
+	stack when call the function, that is y is above x in the stack. However	we do not know what is in the stack.
+
+?6.
+*Answer:
+	add an agument which count the other argument, like the argc for main() 	
+
+##############
+# Exercise 9
+##############
+? Determine where the kernel initializes its stack, and exactly where in memory ? its stack is located. How does the kernel reserve space for its stack? And at ? which "end" of this reserved area is the stack pointer initialized to point to?
+* Answer:
+	The kernel initializes its stack at 0xf010ffff in virtual memory, and at	0x100ffff in physical memory.
+	In the file kern/entry.S, we can see the instruction "movl			$(bootstacktop) %esp", which means "movl $0xf010ffff $esp" when trace to 	kern with GDB. At the bottom of the file, the global variable is set. We	can see that there is a variable named ".space KSTKSIZE", which is used 	to reserve the kernel's stack size.
+	As stack is "grow down" in the x86 processor as we learn before, the 		pointer is initialized to the "top end", and is named "bootstacktop"		in the kern/entry.S
+
+

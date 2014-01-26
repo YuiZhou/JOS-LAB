@@ -1,0 +1,28 @@
+# this file will record some questions or solutions in the lab
+
+# make qemu
+  When make qemu in Part1, there are some error said no reference for some global value.
+  "Solution"
+	The PC is 64-bit, and processor GCC is 64-bit too. Install the gcc-multilib as the document says.
+
+# gdb auto-load file declined
+ At Part1 - The ROM-BIOS, the file .gdbinit should have been loaded automatcally. However, it was been declined.
+  "Solution"
+	I do not know the reason, but use "source .gdbinit" solved this problem
+
+# remote time out
+ When run the .gdbinit, there is a line "+ target remote localhost:2500", but it showed "time out"
+  "Solution"
+	I do not know the reason but download a lab directory again, problem solved.
+
+#
+# all the part2 and exercise exercise can be solved by the knownledge learned in# the ICS course. The only limit is the ebp is set 0 when oading kerel 
+#
+
+# debuginfo_eip type
+ Firstly, I do not know what type parameter to use in the inc/stab.h.
+  "Solution"
+	There is a line "JOS uses the N_SO, N_SOL, N_FUN and N_SLINE types". Actually, I have no idea of the N_SO and N_SOL, but the N_SLINE is the only one to find a line number.
+
+# debuginfo_eip offset
+ I have already pass the grade script, but there are still a bug. I do not know which parameter is tell me the offset of the instruction call a function. So I use '0' represent.
