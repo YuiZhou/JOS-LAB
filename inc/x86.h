@@ -137,22 +137,16 @@ outl(int port, uint32_t data)
 	__asm __volatile("outl %0,%w1" : : "a" (data), "d" (port));
 }
 
-static __inline void
+static __inline void 
 invlpg(void *addr)
-{
+{ 
 	__asm __volatile("invlpg (%0)" : : "r" (addr) : "memory");
-}
+}  
 
 static __inline void
 lidt(void *p)
 {
 	__asm __volatile("lidt (%0)" : : "r" (p));
-}
-
-static __inline void
-lgdt(void *p)
-{
-	__asm __volatile("lgdt (%0)" : : "r" (p));
 }
 
 static __inline void
@@ -228,38 +222,38 @@ tlbflush(void)
 static __inline uint32_t
 read_eflags(void)
 {
-	uint32_t eflags;
-	__asm __volatile("pushfl; popl %0" : "=r" (eflags));
-	return eflags;
+        uint32_t eflags;
+        __asm __volatile("pushfl; popl %0" : "=r" (eflags));
+        return eflags;
 }
 
 static __inline void
 write_eflags(uint32_t eflags)
 {
-	__asm __volatile("pushl %0; popfl" : : "r" (eflags));
+        __asm __volatile("pushl %0; popfl" : : "r" (eflags));
 }
 
 static __inline uint32_t
 read_ebp(void)
 {
-	uint32_t ebp;
-	__asm __volatile("movl %%ebp,%0" : "=r" (ebp));
-	return ebp;
+        uint32_t ebp;
+        __asm __volatile("movl %%ebp,%0" : "=r" (ebp));
+        return ebp;
 }
 
 static __inline uint32_t
 read_esp(void)
 {
-	uint32_t esp;
-	__asm __volatile("movl %%esp,%0" : "=r" (esp));
-	return esp;
+        uint32_t esp;
+        __asm __volatile("movl %%esp,%0" : "=r" (esp));
+        return esp;
 }
 
 static __inline void
 cpuid(uint32_t info, uint32_t *eaxp, uint32_t *ebxp, uint32_t *ecxp, uint32_t *edxp)
 {
 	uint32_t eax, ebx, ecx, edx;
-	asm volatile("cpuid"
+	asm volatile("cpuid" 
 		: "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx)
 		: "a" (info));
 	if (eaxp)
@@ -275,22 +269,9 @@ cpuid(uint32_t info, uint32_t *eaxp, uint32_t *ebxp, uint32_t *ecxp, uint32_t *e
 static __inline uint64_t
 read_tsc(void)
 {
-	uint64_t tsc;
-	__asm __volatile("rdtsc" : "=A" (tsc));
-	return tsc;
-}
-
-static inline uint32_t
-xchg(volatile uint32_t *addr, uint32_t newval)
-{
-	uint32_t result;
-
-	// The + in "+m" denotes a read-modify-write operand.
-	asm volatile("lock; xchgl %0, %1" :
-			"+m" (*addr), "=a" (result) :
-			"1" (newval) :
-			"cc");
-	return result;
+        uint64_t tsc;
+        __asm __volatile("rdtsc" : "=A" (tsc));
+        return tsc;
 }
 
 #endif /* !JOS_INC_X86_H */

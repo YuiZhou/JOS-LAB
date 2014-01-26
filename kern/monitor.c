@@ -28,6 +28,8 @@ static struct Command commands[] = {
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
 
+unsigned read_eip();
+
 /***** Implementations of basic kernel monitor commands *****/
 
 int
@@ -43,16 +45,15 @@ mon_help(int argc, char **argv, struct Trapframe *tf)
 int
 mon_kerninfo(int argc, char **argv, struct Trapframe *tf)
 {
-	extern char _start[], entry[], etext[], edata[], end[];
+	extern char entry[], etext[], edata[], end[];
 
 	cprintf("Special kernel symbols:\n");
-	cprintf("  _start                  %08x (phys)\n", _start);
 	cprintf("  entry  %08x (virt)  %08x (phys)\n", entry, entry - KERNBASE);
 	cprintf("  etext  %08x (virt)  %08x (phys)\n", etext, etext - KERNBASE);
 	cprintf("  edata  %08x (virt)  %08x (phys)\n", edata, edata - KERNBASE);
 	cprintf("  end    %08x (virt)  %08x (phys)\n", end, end - KERNBASE);
 	cprintf("Kernel executable memory footprint: %dKB\n",
-		ROUNDUP(end - entry, 1024) / 1024);
+		(end-entry+1023)/1024);
 	return 0;
 }
 
@@ -151,4 +152,15 @@ monitor(struct Trapframe *tf)
 			if (runcmd(buf, tf) < 0)
 				break;
 	}
+}
+
+// return EIP of caller.
+// does not work if inlined.
+// putting at the end of the file seems to prevent inlining.
+unsigned
+read_eip()
+{
+	uint32_t callerpc;
+	__asm __volatile("movl 4(%%ebp), %0" : "=r" (callerpc));
+	return callerpc;
 }

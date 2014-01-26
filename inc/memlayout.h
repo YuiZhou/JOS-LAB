@@ -16,7 +16,7 @@
 #define GD_KD     0x10     // kernel data
 #define GD_UT     0x18     // user text
 #define GD_UD     0x20     // user data
-#define GD_TSS0   0x28     // Task segment selector for CPU 0
+#define GD_TSS    0x28     // Task segment selector
 
 /*
  * Virtual memory map:                                Permissions
@@ -32,20 +32,13 @@
  *                     |                              | RW/--
  *                     |   Remapped Physical Memory   | RW/--
  *                     |                              | RW/--
- *    KERNBASE, ---->  +------------------------------+ 0xf0000000      --+
- *    KSTACKTOP        |     CPU0's Kernel Stack      | RW/--  KSTKSIZE   |
- *                     | - - - - - - - - - - - - - - -|                   |
- *                     |      Invalid Memory (*)      | --/--  KSTKGAP    |
- *                     +------------------------------+                   |
- *                     |     CPU1's Kernel Stack      | RW/--  KSTKSIZE   |
+ *    KERNBASE ----->  +------------------------------+ 0xf0000000
+ *                     |       Empty Memory (*)       | --/--  PTSIZE
+ *    KSTACKTOP ---->  +------------------------------+ 0xefc00000      --+
+ *                     |         Kernel Stack         | RW/--  KSTKSIZE   |
  *                     | - - - - - - - - - - - - - - -|                 PTSIZE
- *                     |      Invalid Memory (*)      | --/--  KSTKGAP    |
- *                     +------------------------------+                   |
- *                     :              .               :                   |
- *                     :              .               :                   |
- *    MMIOLIM ------>  +------------------------------+ 0xefc00000      --+
- *                     |       Memory-mapped I/O      | RW/--  PTSIZE
- * ULIM, MMIOBASE -->  +------------------------------+ 0xef800000
+ *                     |      Invalid Memory (*)      | --/--             |
+ *    ULIM     ------> +------------------------------+ 0xef800000      --+
  *                     |  Cur. Page Table (User R-)   | R-/R-  PTSIZE
  *    UVPT      ---->  +------------------------------+ 0xef400000
  *                     |          RO PAGES            | R-/R-  PTSIZE
@@ -94,22 +87,16 @@
 #define EXTPHYSMEM	0x100000
 
 // Kernel stack.
-#define KSTACKTOP	KERNBASE
+#define KSTACKTOP	(KERNBASE - PTSIZE)
 #define KSTKSIZE	(8*PGSIZE)   		// size of a kernel stack
-#define KSTKGAP		(8*PGSIZE)   		// size of a kernel stack guard
-
-// Memory-mapped IO.
-#define MMIOLIM		(KSTACKTOP - PTSIZE)
-#define MMIOBASE	(MMIOLIM - PTSIZE)
-
-#define ULIM		(MMIOBASE)
+#define ULIM		(KSTACKTOP - PTSIZE) 
 
 /*
  * User read-only mappings! Anything below here til UTOP are readonly to user.
  * They are global pages mapped in at env allocation time.
  */
 
-// User read-only virtual page table (see 'uvpt' below)
+// User read-only virtual page table (see 'vpt' below)
 #define UVPT		(ULIM - PTSIZE)
 // Read-only copies of the Page structures
 #define UPAGES		(UVPT - PTSIZE)
@@ -137,12 +124,54 @@
 // (should not conflict with other temporary page mappings)
 #define PFTEMP		(UTEMP + PTSIZE - PGSIZE)
 // The location of the user-level STABS data structure
-#define USTABDATA	(PTSIZE / 2)
+#define USTABDATA	(PTSIZE / 2)	
+
 
 #ifndef __ASSEMBLER__
 
 typedef uint32_t pte_t;
 typedef uint32_t pde_t;
+
+#if JOS_USER
+/*
+ * The page directory entry corresponding to the virtual address range
+ * [VPT, VPT + PTSIZE) points to the page directory itself.  Thus, the page
+ * directory is treated as a page table as well as a page directory.
+ *
+ * One result of treating the page directory as a page table is that all PTEs
+ * can be accessed through a "virtual page table" at virtual address VPT (to
+ * which vpt is set in entry.S).  The PTE for page number N is stored in
+ * vpt[N].  (It's worth drawing a diagram of this!)
+ *
+ * A second consequence is that the contents of the current page directory
+ * will always be available at virtual address (VPT + (VPT >> PGSHIFT)), to
+ * which vpd is set in entry.S.
+ */
+extern volatile pte_t vpt[];     // VA of "virtual page table"
+extern volatile pde_t vpd[];     // VA of current page directory
+#endif
+
+/*
+ * Page descriptor structures, mapped at UPAGES.
+ * Read/write to the kernel, read-only to user programs.
+ *
+ * Each struct Page stores metadata for one physical page.
+ * Is it NOT the physical page itself, but there is a one-to-one
+ * correspondence between physical pages and struct Page's.
+ * You can map a Page * to the corresponding physical address
+ * with page2pa() in kern/pmap.h.
+ */
+struct Page {
+	// Next page on the free list.
+	struct Page *pp_link;
+
+	// pp_ref is the count of pointers (usually in page table entries)
+	// to this page, for pages allocated using page_alloc.
+	// Pages allocated at boot time using pmap.c's
+	// boot_alloc do not have valid reference count fields.
+
+	uint16_t pp_ref;
+};
 
 #endif /* !__ASSEMBLER__ */
 #endif /* !JOS_INC_MEMLAYOUT_H */

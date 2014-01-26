@@ -63,6 +63,10 @@ endif
 
 # try to generate a unique GDB port
 GDBPORT	:= $(shell expr `id -u` % 5000 + 25000)
+# QEMU's gdb stub command line changed in 0.11
+QEMUGDB = $(shell if $(QEMU) -nographic -help | grep -q '^-gdb'; \
+	then echo "-gdb tcp::$(GDBPORT)"; \
+	else echo "-s -p $(GDBPORT)"; fi)
 
 CC	:= $(GCCPREFIX)gcc -pipe
 AS	:= $(GCCPREFIX)as
@@ -74,14 +78,13 @@ NM	:= $(GCCPREFIX)nm
 
 # Native commands
 NCC	:= gcc $(CC_VER) -pipe
-NATIVE_CFLAGS := $(CFLAGS) $(DEFS) $(LABDEFS) -I$(TOP) -MD -Wall
 TAR	:= gtar
 PERL	:= perl
 
 # Compiler flags
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
 # Only optimize to -O1 to discourage inlining, which complicates backtraces.
-CFLAGS := $(CFLAGS) $(DEFS) $(LABDEFS) -O1 -fno-builtin -I$(TOP) -MD
+CFLAGS := $(CFLAGS) $(DEFS) $(LABDEFS) -O1 -fno-builtin -I$(TOP) -MD 
 CFLAGS += -fno-omit-frame-pointer
 CFLAGS += -Wall -Wno-format -Wno-unused -Werror -gstabs -m32
 
@@ -116,15 +119,7 @@ all:
 KERN_CFLAGS := $(CFLAGS) -DJOS_KERNEL -gstabs
 USER_CFLAGS := $(CFLAGS) -DJOS_USER -gstabs
 
-# Update .vars.X if variable X has changed since the last make run.
-#
-# Rules that use variable X should depend on $(OBJDIR)/.vars.X.  If
-# the variable's value has changed, this will update the vars file and
-# force a rebuild of the rule that depends on it.
-$(OBJDIR)/.vars.%: FORCE
-	$(V)echo "$($*)" | cmp -s $@ || echo "$($*)" > $@
-.PRECIOUS: $(OBJDIR)/.vars.%
-.PHONY: FORCE
+
 
 
 # Include Makefrags for subdirectories
@@ -132,36 +127,32 @@ include boot/Makefrag
 include kern/Makefrag
 
 
-QEMUOPTS = -hda $(OBJDIR)/kern/kernel.img -serial mon:stdio -gdb tcp::$(GDBPORT)
-QEMUOPTS += $(shell if $(QEMU) -nographic -help | grep -q '^-D '; then echo '-D qemu.log'; fi)
 IMAGES = $(OBJDIR)/kern/kernel.img
-QEMUOPTS += $(QEMUEXTRA)
+QEMUOPTS = -hda $(OBJDIR)/kern/kernel.img -serial mon:stdio $(QEMUEXTRA)
 
 .gdbinit: .gdbinit.tmpl
 	sed "s/localhost:1234/localhost:$(GDBPORT)/" < $^ > $@
 
-pre-qemu: .gdbinit
-
-qemu: $(IMAGES) pre-qemu
+qemu: $(IMAGES)
 	$(QEMU) $(QEMUOPTS)
 
-qemu-nox: $(IMAGES) pre-qemu
+qemu-nox: $(IMAGES)
 	@echo "***"
 	@echo "*** Use Ctrl-a x to exit qemu"
 	@echo "***"
 	$(QEMU) -nographic $(QEMUOPTS)
 
-qemu-gdb: $(IMAGES) pre-qemu
+qemu-gdb: $(IMAGES) .gdbinit
 	@echo "***"
 	@echo "*** Now run 'gdb'." 1>&2
 	@echo "***"
-	$(QEMU) $(QEMUOPTS) -S
+	$(QEMU) $(QEMUOPTS) -S $(QEMUGDB)
 
-qemu-nox-gdb: $(IMAGES) pre-qemu
+qemu-nox-gdb: $(IMAGES) .gdbinit
 	@echo "***"
 	@echo "*** Now run 'gdb'." 1>&2
 	@echo "***"
-	$(QEMU) -nographic $(QEMUOPTS) -S
+	$(QEMU) -nographic $(QEMUOPTS) -S $(QEMUGDB)
 
 print-qemu:
 	@echo $(QEMU)
@@ -169,68 +160,32 @@ print-qemu:
 print-gdbport:
 	@echo $(GDBPORT)
 
+print-qemugdb:
+	@echo $(QEMUGDB)
+
 # For deleting the build
 clean:
-	rm -rf $(OBJDIR) .gdbinit jos.in qemu.log
+	rm -rf $(OBJDIR) .gdbinit jos.in
 
 realclean: clean
-	rm -rf lab$(LAB).tar.gz \
-		jos.out $(wildcard jos.out.*) \
-		qemu.pcap $(wildcard qemu.pcap.*)
+	rm -rf lab$(LAB).tar.gz jos.out
 
 distclean: realclean
 	rm -rf conf/gcc.mk
 
-ifneq ($(V),@)
-GRADEFLAGS += -v
-endif
-
-grade:
+grade: $(LABSETUP)grade-lab$(LAB).sh
 	@echo $(MAKE) clean
 	@$(MAKE) clean || \
 	  (echo "'make clean' failed.  HINT: Do you have another running instance of JOS?" && exit 1)
-	./grade-lab$(LAB) $(GRADEFLAGS)
+	$(MAKE) all
+	sh $(LABSETUP)grade-lab$(LAB).sh
 
-handin:
-	@if test -n "`git config remote.handin.url`"; then \
-		echo "Hand in to remote repository using 'git push handin HEAD' ..."; \
-		if ! git push -f handin HEAD; then \
-            echo ; \
-			echo "Hand in failed."; \
-			echo "As an alternative, please run 'make tarball'"; \
-			echo "and visit http://pdos.csail.mit.edu/6.828/submit/"; \
-			echo "to upload lab$(LAB)-handin.tar.gz.  Thanks!"; \
-			false; \
-		fi; \
-    else \
-		echo "Hand-in repository is not configured."; \
-		echo "Please run 'make handin-prep' first.  Thanks!"; \
-		false; \
-	fi
+handin: tarball
+	@echo Please visit http://pdos.csail.mit.edu/6.828/submit/
+	@echo and upload lab$(LAB)-handin.tar.gz.  Thanks!
 
-handin-check:
-	@if test "$$(git symbolic-ref HEAD)" != refs/heads/lab$(LAB); then \
-		git branch; \
-		read -p "You are not on the lab$(LAB) branch.  Hand-in the current branch? [y/N] " r; \
-		test "$$r" = y; \
-	fi
-	@if ! git diff-files --quiet || ! git diff-index --quiet --cached HEAD; then \
-		git status; \
-		echo; \
-		echo "You have uncomitted changes.  Please commit or stash them."; \
-		false; \
-	fi
-	@if test -n "`git ls-files -o --exclude-standard`"; then \
-		git status; \
-		read -p "Untracked files will not be handed in.  Continue? [y/N] " r; \
-		test "$$r" = y; \
-	fi
-
-tarball: handin-check
-	git archive --format=tar HEAD | gzip > lab$(LAB)-handin.tar.gz
-
-handin-prep:
-	@./handin-prep
+tarball: realclean
+	tar cf - `find . -type f | grep -v '^\.*$$' | grep -v '/CVS/' | grep -v '/\.svn/' | grep -v '/\.git/' | grep -v 'lab[0-9].*\.tar\.gz'` | gzip > lab$(LAB)-handin.tar.gz
 
 
 # This magic automatically generates makefile dependencies
@@ -247,4 +202,4 @@ always:
 	@:
 
 .PHONY: all always \
-	handin tarball clean realclean distclean grade handin-prep handin-check
+	handin tarball clean realclean distclean grade

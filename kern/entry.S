@@ -48,9 +48,8 @@ entry:
 	# (plus a few bytes).  However, the C code is linked to run at
 	# KERNBASE+1MB.  Hence, we set up a trivial page directory that
 	# translates virtual addresses [KERNBASE, KERNBASE+4MB) to
-	# physical addresses [0, 4MB).  This 4MB region will be
-	# sufficient until we set up our real page table in mem_init
-	# in lab 2.
+	# physical addresses [0, 4MB).  This 4MB region will be suffice
+	# until we set up our real page table in mem_init in lab 2.
 
 	# Load the physical address of entry_pgdir into cr3.  entry_pgdir
 	# is defined in entrypgdir.c.

@@ -40,14 +40,6 @@ strcpy(char *dst, const char *src)
 }
 
 char *
-strcat(char *dst, const char *src)
-{
-	int len = strlen(dst);
-	strcpy(dst + len, src);
-	return dst;
-}
-
-char *
 strncpy(char *dst, const char *src, size_t size) {
 	size_t i;
 	char *ret;
@@ -143,7 +135,7 @@ memmove(void *dst, const void *src, size_t n)
 {
 	const char *s;
 	char *d;
-
+	
 	s = src;
 	d = dst;
 	if (s < d && s + n > d) {
@@ -184,12 +176,14 @@ memset(void *v, int c, size_t n)
 	return v;
 }
 
+/* no memcpy - use memmove instead */
+
 void *
 memmove(void *dst, const void *src, size_t n)
 {
 	const char *s;
 	char *d;
-
+	
 	s = src;
 	d = dst;
 	if (s < d && s + n > d) {
@@ -205,8 +199,10 @@ memmove(void *dst, const void *src, size_t n)
 }
 #endif
 
+/* sigh - gcc emits references to this for structure assignments! */
+/* it is *not* prototyped in inc/string.h - do not use directly. */
 void *
-memcpy(void *dst, const void *src, size_t n)
+memcpy(void *dst, void *src, size_t n)
 {
 	return memmove(dst, src, n);
 }

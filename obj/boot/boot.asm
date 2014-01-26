@@ -259,7 +259,7 @@ readseg(uint32_t pa, uint32_t count, uint32_t offset)
     7cdc:	8b 75 10             	mov    0x10(%ebp),%esi
     7cdf:	53                   	push   %ebx
     7ce0:	8b 5d 08             	mov    0x8(%ebp),%ebx
-
+	
 	// round down to sector boundary
 	pa &= ~(SECTSIZE - 1);
 
@@ -273,7 +273,7 @@ readseg(uint32_t pa, uint32_t count, uint32_t offset)
 
 	end_pa = pa + count;
     7ce6:	01 df                	add    %ebx,%edi
-
+	
 	// round down to sector boundary
 	pa &= ~(SECTSIZE - 1);
 
@@ -283,7 +283,7 @@ readseg(uint32_t pa, uint32_t count, uint32_t offset)
 	uint32_t end_pa;
 
 	end_pa = pa + count;
-
+	
 	// round down to sector boundary
 	pa &= ~(SECTSIZE - 1);
     7ce9:	81 e3 00 fe ff ff    	and    $0xfffffe00,%ebx
