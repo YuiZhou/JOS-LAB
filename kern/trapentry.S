@@ -4,6 +4,7 @@
 #include <inc/memlayout.h>
 #include <inc/trap.h>
 
+#include <kern/picirq.h>
 
 
 ###################################################################
@@ -75,6 +76,10 @@ TRAPHANDLER_NOEC(Machine_Check, T_MCHK);
 TRAPHANDLER_NOEC(SIMD_Floating_Point_Exception, T_SIMDERR);
 
 TRAPHANDLER_NOEC(System_call,T_SYSCALL);
+# .globl sysenter_handler;
+# .type sysenter_handler, @function;
+# .align 2;
+# sysenter_handler:
 
 /*
  * Lab 3: Your code here for _alltraps

@@ -1,0 +1,7 @@
+Question1. In the mpentry.S, the MPBOOTPHYS is used to calculate absolute addresses of its symbols. However in the boot.S, the absolute address can be viewed according the link address because there is a map bewteen the low address and high address. When booting the APS, the cr0 is set and the APS can not direct access the  physical address.
+
+Question2. When CPUA pushes some value to the sharing stack and then is interrupted, CPU B gets the lock and starts running its threads, it pushed values in the stack, too. The value in the stack pushed by CPU A will not be used once the control is return to CPU A.
+
+Question3. In lab3, we mapped it in a fixed address in the kernel.
+
+Question4. It makes sure that the threads can run correctly once they run again. The register information is save in the environment struct. 
